@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ t('auth.login', lang) }} | SAT Scheduler{% endblock %}
+{% block content %}
+<section class="card narrow auth-card">
+  <h1>{{ t('auth.login', lang) }}</h1>
+  <p class="muted">{{ t('auth.login_description', lang) }}</p>
+  {% if error %}<div class="alert error" role="alert">{{ error }}</div>{% endif %}
+  <form method="post" action="/login" class="form">
+    <input type="hidden" name="next" value="{{ next_path }}">
+    <label>{{ t('users.login_id', lang) }}<input name="login_id" autocomplete="username" required autofocus></label>
+    <label>{{ t('users.password', lang) }}<input name="password" type="password" maxlength="128" autocomplete="current-password" required></label>
+    <button type="submit">{{ t('auth.login', lang) }}</button>
+  </form>
+  <div class="auth-switch">
+    <span>{{ t('auth.no_account', lang) }}</span>
+    <a class="button secondary" href="/register">{{ t('auth.register', lang) }}</a>
+  </div>
+</section>
+{% endblock %}

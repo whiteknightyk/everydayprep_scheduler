@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="{{ lang|default('ja') }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Everydayprep scheduler{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div class="brand">Everydayprep scheduler</div>
+  {% if not auth_context_set or current_user %}
+  <nav>
+    <a href="/">{{ t('nav.dashboard', lang) }}</a>
+    {% if not auth_context_set or is_management %}
+    <a href="/users">{{ t('nav.users', lang) }}</a>
+    {% endif %}
+    <a href="/availability">{{ t('nav.availability', lang) }}</a>
+    {% if not auth_context_set or is_management %}
+    <a href="/lessons/new">{{ t('nav.new_lesson', lang) }}</a>
+    {% endif %}
+  </nav>
+  {% endif %}
+  <div class="header-actions">
+  {% if auth_context_set and current_user %}
+    {% if can_switch_permission_mode %}
+    <span class="signed-in-user">{{ current_user.name }} / {{ t('role.' ~ account_role, lang) }} / {{ t('permission.mode.' ~ permission_mode, lang) }}</span>
+    <form method="post" action="/permission-mode">
+      <input type="hidden" name="mode" value="{{ next_permission_mode }}">
+      <input type="hidden" name="next" value="{{ current_path }}">
+      <button class="mode-switch-button" type="submit">{{ t('permission.switch_to_' ~ next_permission_mode, lang) }}</button>
+    </form>
+    {% else %}
+    <span class="signed-in-user">{{ current_user.name }} / {{ t('role.' ~ current_user.role, lang) }}</span>
+    {% endif %}
+    <form method="post" action="/logout"><button class="logout-button" type="submit">{{ t('nav.logout', lang) }}</button></form>
+  {% endif %}
+  <a class="language-toggle" href="{{ language_switch_url|default('/language/en?next=%2F', true) }}" hreflang="{{ 'en' if (lang|default('ja')) == 'ja' else 'ja' }}" aria-label="{{ language_switch_aria|default('Switch to English', true) }}">{{ language_switch_label|default('English', true) }}</a>
+  </div>
+</header>
+<main>
+  {% block content %}{% endblock %}
+</main>
+<footer>{{ t('footer', lang) }}</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

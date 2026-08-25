@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ t('dashboard.page_title', lang) }} | SAT Scheduler{% endblock %}
+{% block content %}
+<h1>{{ t('dashboard.heading', lang) }}</h1>
+<div class="stats">
+  <div class="stat"><strong>{{ stats.get('draft',0) }}</strong><span>{{ t('status.draft', lang) }}</span></div>
+  <div class="stat"><strong>{{ stats.get('responding',0) }}</strong><span>{{ t('status.responding', lang) }}</span></div>
+  <div class="stat"><strong>{{ stats.get('agreed',0) }}</strong><span>{{ t('status.agreed', lang) }}</span></div>
+  <div class="stat"><strong>{{ stats.get('confirmed',0) }}</strong><span>{{ t('status.confirmed', lang) }}</span></div>
+</div>
+<section class="card">
+<div class="dashboard-list-header">
+  <h2>{{ t('dashboard.lessons', lang) }}</h2>
+  {% if not auth_context_set or is_management %}<form method="get" action="/" class="student-filter">
+    <label for="student-filter">{{ t('common.student', lang) }}
+      <select id="student-filter" name="student_id">
+        {% for student in students %}
+        <option value="{{student.id}}" {% if selected_student_id == student.id %}selected{% endif %}>{{student.name}}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit" class="secondary">{{ t('common.display', lang) }}</button>
+  </form>{% endif %}
+</div>
+{% if lesson_groups %}
+<div class="student-lesson-list">
+{% for group in lesson_groups %}
+<section class="student-lessons">
+  <div class="student-lessons-header">
+    <h3>{{ group.student_name }}</h3>
+    <span class="lesson-count">{{ t('dashboard.lesson_count', lang, count=group.lessons|length) }}</span>
+  </div>
+  <div class="table-scroll">
+    <table>
+    <thead><tr><th>ID</th><th>{{ t('common.subject', lang) }}</th><th>{{ t('common.instructor', lang) }}</th><th>{{ t('common.status', lang) }}</th><th>{{ t('dashboard.confirmed_time', lang) }}</th><th>{{ t('common.actions', lang) }}</th></tr></thead>
+    <tbody>
+    {% for l in group.lessons %}
+    <tr>
+    <td>#{{ l.id }}</td><td>{{ l.subject }}</td><td>{{ l.instructor_name }}</td>
+    <td><span class="badge {{ l.status }}">{{ t('status.' ~ l.status, lang) }}</span></td>
+    <td>{% if l.confirmed_start_utc %}{{ fmt_local(l.confirmed_start_utc,'Asia/Tokyo') }} JST{% else %}—{% endif %}</td>
+    <td>
+      <div class="lesson-actions">
+        <a class="button small" href="/lessons/{{ l.id }}">{{ t('common.open', lang) }}</a>
+        {% if not auth_context_set or is_management %}<form method="post" action="/lessons/{{ l.id }}/delete" onsubmit="return confirm('{{ t('dashboard.delete_confirm', lang) }}')">
+          <button type="submit" class="danger small">{{ t('common.delete', lang) }}</button>
+        </form>{% endif %}
+      </div>
+    </td>
+    </tr>
+    {% endfor %}
+    </tbody></table>
+  </div>
+</section>
+{% endfor %}
+</div>
+{% elif selected_student_id %}<p>{{ t('dashboard.empty_selected', lang) }}</p>
+{% else %}<p>{{ t('dashboard.empty', lang) }}</p>{% endif %}
+</section>
+{% endblock %}

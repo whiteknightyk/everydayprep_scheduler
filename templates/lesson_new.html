@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ t('lesson_new.page_title', lang) }} | SAT Scheduler{% endblock %}
+{% block content %}
+<h1>{{ t('lesson_new.heading', lang) }}</h1>
+<section class="card narrow">
+{% if not instructors or not students %}
+<p>{{ t('lesson_new.missing_users', lang) }}</p>
+{% else %}
+<form method="post" action="/lessons" class="form">
+<label>{{ t('common.instructor', lang) }}<select name="instructor_id">{% for u in instructors %}<option value="{{u.id}}">{{u.name}} / {{ t('role.' ~ u.role, lang) }} / {{u.timezone}}</option>{% endfor %}</select></label>
+<label>{{ t('common.student', lang) }}<select name="student_id">{% for u in students %}<option value="{{u.id}}">{{u.name}} / {{u.timezone}}</option>{% endfor %}</select></label>
+<label>{{ t('lesson_new.content', lang) }}<input name="subject" value="SAT Math"></label>
+<label>{{ t('lesson_new.duration', lang) }}<input name="duration_minutes" type="number" value="60" min="30" max="240" step="30"></label>
+<button>{{ t('lesson_new.create', lang) }}</button>
+</form>
+{% endif %}
+</section>
+{% endblock %}

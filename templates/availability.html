@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ t('availability.page_title', lang) }} | SAT Scheduler{% endblock %}
+{% block content %}
+<h1>{{ t('availability.heading', lang) }}</h1>
+<p class="muted">{{ t('availability.description', lang) }}</p>
+<section class="card">
+<form method="get" action="/availability" class="inline-form">
+<label>{{ t('availability.user', lang) }}<select name="user_id" required>
+<option value="">{{ t('common.select', lang) }}</option>
+{% for u in users %}<option value="{{u.id}}" {% if selected and selected.id==u.id %}selected{% endif %}>{{u.name}} / {{ t('role.' ~ u.role, lang) }} / {{u.timezone}}</option>{% endfor %}
+</select></label><button>{{ t('common.display', lang) }}</button>
+</form>
+</section>
+{% if selected %}
+<div class="grid two">
+<section class="card">
+<h2>{{ t('availability.regular_for', lang, name=selected.name) }}</h2>
+<p class="muted">{{ t('availability.local_time', lang, timezone=selected.timezone) }}</p>
+<form method="post" action="/availability" class="form compact">
+<input type="hidden" name="user_id" value="{{selected.id}}">
+<label>{{ t('common.weekday', lang) }}<select name="weekday">{% for w in weekdays %}<option value="{{loop.index0}}">{{w}}</option>{% endfor %}</select></label>
+<label>{{ t('common.start', lang) }}<input type="time" name="start_time" required></label>
+<label>{{ t('common.end', lang) }}<input type="time" name="end_time" required></label>
+<button>{{ t('common.add', lang) }}</button>
+</form>
+<table><thead><tr><th>{{ t('common.weekday', lang) }}</th><th>{{ t('common.time', lang) }}</th><th></th></tr></thead><tbody>
+{% for r in rows %}<tr><td>{{weekdays[r.weekday]}}</td><td>{{r.start_time}}–{{r.end_time}}</td><td><form method="post" action="/availability/{{r.id}}/delete"><button class="danger small">{{ t('common.delete', lang) }}</button></form></td></tr>{% endfor %}
+{% if not rows %}<tr><td colspan="3" class="muted">{{ t('availability.unrestricted', lang) }}</td></tr>{% endif %}
+</tbody></table>
+</section>
+<section class="card">
+<h2>{{ t('availability.exceptions', lang) }}</h2>
+<form method="post" action="/exceptions" class="form compact">
+<input type="hidden" name="user_id" value="{{selected.id}}">
+<label>{{ t('common.start', lang) }}<input type="datetime-local" name="start_local" required></label>
+<label>{{ t('common.end', lang) }}<input type="datetime-local" name="end_local" required></label>
+<label>{{ t('common.reason', lang) }}<input name="reason" placeholder="{{ t('availability.reason_placeholder', lang) }}"></label>
+<button>{{ t('common.add', lang) }}</button>
+</form>
+<table><thead><tr><th>{{ t('availability.local_datetime', lang) }}</th><th>{{ t('common.reason', lang) }}</th><th></th></tr></thead><tbody>
+{% for e in exceptions %}<tr><td>{{fmt_local(e.start_utc,selected.timezone)}}–<br>{{fmt_local(e.end_utc,selected.timezone)}}</td><td>{{e.reason or '—'}}</td><td><form method="post" action="/exceptions/{{e.id}}/delete"><button class="danger small">{{ t('common.delete', lang) }}</button></form></td></tr>{% endfor %}
+{% if not exceptions %}<tr><td colspan="3" class="muted">{{ t('availability.no_exceptions', lang) }}</td></tr>{% endif %}
+</tbody></table>
+</section>
+</div>
+{% endif %}
+{% endblock %}

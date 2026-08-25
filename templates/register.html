@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ t('auth.register', lang) }} | SAT Scheduler{% endblock %}
+{% block content %}
+<section class="card narrow auth-card">
+  <h1>{{ t('auth.register', lang) }}</h1>
+  <p class="muted">{{ t('auth.register_description', lang) }}</p>
+  {% if error %}<div class="alert error" role="alert">{{ error }}</div>{% endif %}
+  <form method="post" action="/register" class="form">
+    <label>{{ t('common.name', lang) }}<input name="name" value="{{ form_values.name|default('') }}" maxlength="100" autocomplete="name" required autofocus></label>
+    <label>{{ t('common.role', lang) }}
+      <select name="role" required>
+        <option value="student" {% if form_values.role|default('student') == 'student' %}selected{% endif %}>{{ t('role.student', lang) }}</option>
+        <option value="instructor" {% if form_values.role == 'instructor' %}selected{% endif %}>{{ t('role.instructor', lang) }}</option>
+      </select>
+    </label>
+    <label>{{ t('users.login_id', lang) }}<input name="login_id" value="{{ form_values.login_id|default('') }}" minlength="3" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._@+\-]{2,63}" autocomplete="username" required><small>{{ t('users.login_id_help', lang) }}</small></label>
+    <label>{{ t('users.password', lang) }}<input name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required><small>{{ t('users.password_help', lang) }}</small></label>
+    <label>{{ t('users.password_confirm', lang) }}<input name="password_confirm" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label>
+    <div class="field timezone-search" data-timezone-search data-language="{{ lang|default('ja') }}">
+      <label for="registration-location-query">{{ t('users.location_search', lang) }}</label>
+      <div class="timezone-search-row">
+        <input id="registration-location-query" type="search" placeholder="{{ t('users.location_placeholder', lang) }}" autocomplete="off" aria-controls="registration-timezone-results" aria-autocomplete="list">
+        <button id="registration-location-search-button" type="button" class="secondary">{{ t('users.search', lang) }}</button>
+      </div>
+      <small id="registration-timezone-search-status" class="timezone-search-status" role="status">{{ t('users.search_prompt', lang) }}</small>
+      <div id="registration-timezone-results" class="timezone-results" role="listbox" aria-label="{{ t('users.search_results', lang) }}" hidden></div>
+      <small class="timezone-attribution">{{ t('users.search_data', lang) }}: Photon / <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a></small>
+    </div>
+    <label for="registration-timezone-name">{{ t('users.timezone', lang) }}<input id="registration-timezone-name" name="timezone_name" value="{{ form_values.timezone_name|default('Asia/Tokyo') }}" required><small>{{ t('users.timezone_help', lang) }}</small></label>
+    <label>{{ t('users.email', lang) }}<input name="email" type="email" value="{{ form_values.email|default('') }}" autocomplete="email"></label>
+    <button type="submit">{{ t('auth.register_submit', lang) }}</button>
+  </form>
+  <div class="auth-switch">
+    <span>{{ t('auth.have_account', lang) }}</span>
+    <a class="button secondary" href="/login">{{ t('auth.login', lang) }}</a>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="/static/timezone-search.js" defer></script>{% endblock %}

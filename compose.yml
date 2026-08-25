@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sat_scheduler
+      POSTGRES_USER: sat_scheduler
+      POSTGRES_PASSWORD: ${SAT_SCHEDULER_DB_PASSWORD:?Set SAT_SCHEDULER_DB_PASSWORD in .env}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sat_scheduler -d sat_scheduler"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SAT_SCHEDULER_ENV: development
+      SAT_SCHEDULER_SESSION_SECRET: ${SAT_SCHEDULER_SESSION_SECRET:?Set SAT_SCHEDULER_SESSION_SECRET in .env}
+      SAT_SCHEDULER_HTTPS_ONLY: "0"
+      SAT_SCHEDULER_DB_ENGINE: postgresql
+      SAT_SCHEDULER_DB_HOST: db
+      SAT_SCHEDULER_DB_PORT: "5432"
+      SAT_SCHEDULER_DB_NAME: sat_scheduler
+      SAT_SCHEDULER_DB_USER: sat_scheduler
+      SAT_SCHEDULER_DB_PASSWORD: ${SAT_SCHEDULER_DB_PASSWORD:?Set SAT_SCHEDULER_DB_PASSWORD in .env}
+    ports:
+      - "8000:8000"
+
+volumes:
+  postgres_data:

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}{{ t('users.page_title', lang) }} | SAT Scheduler{% endblock %}
+{% block content %}
+<h1>{{ t('users.page_title', lang) }}</h1>
+<div class="grid two">
+<section class="card">
+<h2>{{ t('users.new', lang) }}</h2>
+<form method="post" action="/users" class="form">
+<label>{{ t('common.name', lang) }}<input name="name" required></label>
+<label>{{ t('common.role', lang) }}<select name="role">{% if not auth_context_set or current_user.role == 'owner' %}<option value="owner">{{ t('role.owner', lang) }}</option>{% endif %}<option value="admin">{{ t('role.admin', lang) }}</option><option value="instructor" selected>{{ t('role.instructor', lang) }}</option><option value="student">{{ t('role.student', lang) }}</option></select></label>
+<label>{{ t('users.login_id', lang) }}<input name="login_id" minlength="3" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._@+\-]{2,63}" autocomplete="username" required><small>{{ t('users.login_id_help', lang) }}</small></label>
+<label>{{ t('users.password', lang) }}<input name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required><small>{{ t('users.password_help', lang) }}</small></label>
+<label>{{ t('users.password_confirm', lang) }}<input name="password_confirm" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label>
+<div class="field timezone-search" data-timezone-search data-language="{{ lang|default('ja') }}">
+  <label for="location-query">{{ t('users.location_search', lang) }}</label>
+  <div class="timezone-search-row">
+    <input id="location-query" type="search" placeholder="{{ t('users.location_placeholder', lang) }}" autocomplete="off" aria-controls="timezone-results" aria-autocomplete="list">
+    <button id="location-search-button" type="button" class="secondary">{{ t('users.search', lang) }}</button>
+  </div>
+  <small id="timezone-search-status" class="timezone-search-status" role="status">{{ t('users.search_prompt', lang) }}</small>
+  <div id="timezone-results" class="timezone-results" role="listbox" aria-label="{{ t('users.search_results', lang) }}" hidden></div>
+  <small class="timezone-attribution">{{ t('users.search_data', lang) }}: Photon / <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a></small>
+</div>
+<label for="timezone-name">{{ t('users.timezone', lang) }}<input id="timezone-name" name="timezone_name" value="Asia/Tokyo" required><small>{{ t('users.timezone_help', lang) }}</small></label>
+<label>{{ t('users.email', lang) }}<input name="email" type="email"></label>
+<button>{{ t('users.register', lang) }}</button>
+</form>
+</section>
+<section class="card">
+<h2>{{ t('users.registered', lang) }}</h2>
+<div class="table-scroll"><table><thead><tr><th>{{ t('common.name', lang) }}</th><th>{{ t('users.login_id', lang) }}</th><th>{{ t('common.role', lang) }}</th><th>Timezone</th><th>{{ t('common.actions', lang) }}</th></tr></thead><tbody>
+{% for u in users %}
+<tr>
+  <td>{{u.name}}</td><td>{% if u.login_id %}<code>{{u.login_id}}</code>{% else %}<span class="muted">{{ t('users.no_login', lang) }}</span>{% endif %}</td><td>{{ t('role.' ~ u.role, lang) }}</td><td>{{u.timezone}}</td>
+  <td>
+    {% if u.role == 'instructor' %}
+    <form method="post" action="/users/{{u.id}}/promote-to-admin" onsubmit="return confirm('{{ t('users.promote_to_admin_confirm', lang) }}')">
+      <button type="submit" class="secondary small">{{ t('users.promote_to_admin', lang) }}</button>
+    </form>
+    {% endif %}
+    {% if not auth_context_set or u.role != 'owner' or current_user.role == 'owner' %}<details class="credential-editor">
+      <summary>{{ t('users.credentials', lang) }}</summary>
+      <form method="post" action="/users/{{u.id}}/credentials" class="form compact-stack">
+        <small>{{ t('users.credentials_help', lang) }}</small>
+        <label>{{ t('users.login_id', lang) }}<input name="login_id" value="{{u.login_id or ''}}" minlength="3" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._@+\-]{2,63}" autocomplete="off" required></label>
+        <label>{{ t('users.password', lang) }}<input name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label>
+        <label>{{ t('users.password_confirm', lang) }}<input name="password_confirm" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label>
+        <button type="submit" class="small">{{ t('users.credentials_save', lang) }}</button>
+      </form>
+    </details>{% endif %}
+    {% if not auth_context_set or not current_user or (current_user.id != u.id and (u.role != 'owner' or current_user.role == 'owner')) %}
+    <form method="post" action="/users/{{u.id}}/delete" onsubmit="return confirm('{{ t('users.delete_confirm', lang) }}')">
+      <button type="submit" class="danger small">{{ t('common.delete', lang) }}</button>
+    </form>
+    {% else %}—{% endif %}
+  </td>
+</tr>
+{% endfor %}
+</tbody></table></div>
+</section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/timezone-search.js" defer></script>{% endblock %}

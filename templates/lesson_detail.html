@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}{{ t('lesson.page_title', lang, id=lesson.id) }} | SAT Scheduler{% endblock %}
+{% block content %}
+<div class="title-row"><div><h1>{{lesson.subject}}</h1><p>{{lesson.instructor_name}} ⇄ {{lesson.student_name}} / {{ t('lesson.duration', lang, minutes=lesson.duration_minutes) }}</p></div><span class="badge big {{lesson.status}}">{{ t('status.' ~ lesson.status, lang) }}</span></div>
+
+{% if lesson.status == 'confirmed' %}
+<section class="card success-card">
+<h2>{{ t('lesson.confirmed', lang) }}</h2>
+<p><strong>{{ t('lesson.japan_time', lang) }}:</strong> {{fmt_local(lesson.confirmed_start_utc,'Asia/Tokyo')}} JST</p>
+<p><strong>{{lesson.instructor_name}}:</strong> {{fmt_local(lesson.confirmed_start_utc,lesson.instructor_tz)}} {{lesson.instructor_tz}}</p>
+<p><strong>{{lesson.student_name}}:</strong> {{fmt_local(lesson.confirmed_start_utc,lesson.student_tz)}} {{lesson.student_tz}}</p>
+<div class="zoom-details {% if not zoom_ready %}waiting{% endif %}">
+  <h3>{{ t('lesson.zoom_heading', lang) }}</h3>
+  {% if zoom_ready %}
+  <dl>
+    {% if lesson.meeting_url %}
+    <div><dt>{{ t('lesson.zoom_link', lang) }}</dt><dd><a href="{{ lesson.meeting_url }}" target="_blank" rel="noreferrer">{{ lesson.meeting_url }}</a></dd></div>
+    {% endif %}
+    {% if lesson.zoom_meeting_id %}
+    <div><dt>{{ t('lesson.zoom_meeting_id', lang) }}</dt><dd><code>{{ lesson.zoom_meeting_id }}</code></dd></div>
+    {% endif %}
+    {% if lesson.zoom_password %}
+    <div><dt>{{ t('lesson.zoom_password', lang) }}</dt><dd><code>{{ lesson.zoom_password }}</code></dd></div>
+    {% endif %}
+  </dl>
+  {% else %}
+  <p>{{ t('lesson.zoom_waiting', lang) }}</p>
+  {% endif %}
+  {% if not auth_context_set or can_act_as_instructor %}
+  <form method="post" action="/lessons/{{lesson.id}}/zoom" class="form zoom-form">
+    <p class="muted">{{ t('lesson.zoom_form_help', lang) }}</p>
+    <label>{{ t('lesson.zoom_link', lang) }} <small>{{ t('common.optional', lang) }}</small><input name="meeting_url" type="url" value="{{ lesson.meeting_url or '' }}" maxlength="2048" placeholder="https://…zoom.us/j/…"></label>
+    <label>{{ t('lesson.zoom_meeting_id', lang) }} <small>{{ t('common.optional', lang) }}</small><input name="zoom_meeting_id" value="{{ lesson.zoom_meeting_id or '' }}" maxlength="64" inputmode="numeric"></label>
+    <label>{{ t('lesson.zoom_password', lang) }} <small>{{ t('common.optional', lang) }}</small><input name="zoom_password" value="{{ lesson.zoom_password or '' }}" maxlength="128" autocomplete="off"></label>
+    <button type="submit">{{ t('lesson.zoom_save', lang) }}</button>
+  </form>
+  {% endif %}
+</div>
+<div class="share-message" data-share-message>
+  <h3>{{ t('lesson.share_heading', lang) }}</h3>
+  <p class="muted">{{ t('lesson.share_description', lang) }}</p>
+  <label class="sr-only" for="lesson-share-message">{{ t('lesson.share_heading', lang) }}</label>
+  <textarea id="lesson-share-message" rows="16" readonly>{{ share_message }}</textarea>
+  <div class="share-message-actions">
+    <button
+      type="button"
+      data-copy-message
+      data-target="lesson-share-message"
+      data-success="{{ t('lesson.share_copied', lang) }}"
+      data-error="{{ t('lesson.share_failed', lang) }}"
+    >{{ t('lesson.share_copy', lang) }}</button>
+    <span class="copy-status" data-copy-status role="status" aria-live="polite"></span>
+  </div>
+</div>
+{% if not auth_context_set or is_management %}<form method="post" action="/lessons/{{lesson.id}}/reopen" onsubmit="return confirm('{{ t('lesson.reopen_confirm', lang) }}')"><button class="secondary">{{ t('lesson.reopen', lang) }}</button></form>{% endif %}
+</section>
+{% else %}
+<section class="card">
+<h2>{{ t('lesson.propose', lang) }}</h2>
+<div class="schedule-boundary">
+  <div>
+    <strong>{{ t('lesson.availability_for', lang, name=lesson.instructor_name) }}</strong>
+    <span class="muted">{{ t('lesson.input_basis', lang, timezone=lesson.instructor_tz) }}</span>
+  </div>
+  {% if instructor_availability %}
+  <ul>
+    {% for row in instructor_availability %}<li>{{weekdays[row.weekday]}} {{row.start_time}}–{{row.end_time}}</li>{% endfor %}
+  </ul>
+  <p class="muted">{{ t('lesson.range_note', lang) }}</p>
+  {% else %}
+  <p>{{ t('lesson.no_range', lang) }}</p>
+  {% endif %}
+  {% if not auth_context_set or is_management or can_act_as_instructor %}<a class="button small secondary" href="/availability?user_id={{lesson.instructor_id}}">{{ t('lesson.change_range', lang) }}</a>{% endif %}
+</div>
+<div class="proposal-patterns">
+  {% if not auth_context_set or is_management %}
+  <div class="proposal-method">
+    <h3>{{ t('lesson.coordinator_proposes', lang) }}</h3>
+    <p class="muted">{{ t('lesson.coordinator_method', lang) }}</p>
+    <form method="post" action="/lessons/{{lesson.id}}/proposals" class="form">
+      <input type="hidden" name="proposed_by" value="admin">
+      <input type="hidden" name="input_timezone" value="Asia/Tokyo">
+      <label>{{ t('lesson.proposal_datetime_japan', lang) }}
+        <input type="datetime-local" name="start_local" required>
+        <small>JST / Asia/Tokyo</small>
+      </label>
+      <button>{{ t('lesson.coordinator_submit', lang) }}</button>
+    </form>
+  </div>
+  {% endif %}
+  {% if not auth_context_set or can_act_as_instructor or (current_user and current_user.role == 'student') %}
+  <div class="proposal-method">
+    <h3>{{ t('lesson.participant_proposes', lang) }}</h3>
+    <p class="muted">{{ t('lesson.participant_method', lang) }}</p>
+    <form method="post" action="/lessons/{{lesson.id}}/proposals" class="form">
+      <label>{{ t('lesson.proposer', lang) }}
+        {% if not auth_context_set %}
+        <select name="proposed_by" required>
+          <option value="instructor">{{ t('role.instructor', lang) }} ({{lesson.instructor_name}})</option>
+          <option value="student">{{ t('role.student', lang) }} ({{lesson.student_name}})</option>
+        </select>
+        {% else %}
+        <input type="hidden" name="proposed_by" value="{{ 'instructor' if can_act_as_instructor else 'student' }}">
+        <span>{{ t('role.instructor' if can_act_as_instructor else 'role.student', lang) }} / {{ current_user.name }}</span>
+        {% endif %}
+      </label>
+      <label>{{ t('lesson.input_timezone', lang) }}
+        <select name="input_timezone" required>
+          {% for item in proposal_timezones %}<option value="{{item.name}}">{{item.label}}</option>{% endfor %}
+        </select>
+      </label>
+      <label>{{ t('lesson.proposal_datetime_local', lang) }}
+        <input type="datetime-local" name="start_local" required>
+      </label>
+      <button>{{ t('lesson.add_candidate', lang) }}</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+</section>
+
+<section class="card">
+<h2>{{ t('lesson.candidates', lang) }}</h2>
+{% if candidates %}
+<div class="candidate-list">
+{% for c in candidates %}
+<article class="candidate {% if c.instructor_response=='accept' and c.student_response=='accept' %}matched{% endif %}">
+<div class="candidate-time">
+<strong>{{fmt_local(c.start_utc,'Asia/Tokyo')}} JST</strong>
+<span class="proposal-owner">{% if c.proposed_by in ['admin', 'instructor', 'student'] %}{{ t('lesson.proposal.' ~ c.proposed_by, lang) }}{% else %}{{ t('lesson.proposal.legacy', lang) }}{% endif %}</span>
+<span>{{lesson.instructor_name}}: {{fmt_local(c.start_utc,lesson.instructor_tz)}}</span>
+<span>{{lesson.student_name}}: {{fmt_local(c.start_utc,lesson.student_tz)}}</span>
+</div>
+<div class="responses">
+<div>
+<b>{{ t('role.instructor', lang) }}</b><span class="response {{c.instructor_response}}">{{response_labels[c.instructor_response]}}</span>
+  {% if c.proposed_by == 'instructor' %}<small>{{ t('lesson.proposer_accepted', lang) }}</small>{% elif not auth_context_set or can_act_as_instructor %}
+<form method="post" action="/candidates/{{c.id}}/respond"><input type="hidden" name="role" value="instructor"><button name="response" value="accept" class="small">○</button><button name="response" value="reject" class="small secondary">×</button></form>
+{% endif %}
+</div>
+<div>
+<b>{{ t('role.student', lang) }}</b><span class="response {{c.student_response}}">{{response_labels[c.student_response]}}</span>
+{% if c.proposed_by == 'student' %}<small>{{ t('lesson.proposer_accepted', lang) }}</small>{% elif not auth_context_set or (current_user and current_user.role == 'student') %}
+<form method="post" action="/candidates/{{c.id}}/respond"><input type="hidden" name="role" value="student"><button name="response" value="accept" class="small">○</button><button name="response" value="reject" class="small secondary">×</button></form>
+{% endif %}
+</div>
+</div>
+<div class="candidate-actions">
+{% if not auth_context_set or is_management %}
+<form method="post" action="/candidates/{{c.id}}/cancel" onsubmit="return confirm('{{ t('lesson.cancel_confirm', lang) }}')">
+<button class="danger small">{{ t('lesson.cancel', lang) }}</button>
+</form>
+{% endif %}
+</div>
+</article>
+{% endfor %}
+</div>
+{% else %}<p>{{ t('lesson.no_candidates', lang) }}</p>{% endif %}
+</section>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}{% if lesson.status == 'confirmed' %}<script src="/static/share-message.js" defer></script>{% endif %}{% endblock %}

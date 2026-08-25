@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ t('auth.setup', lang) }} | SAT Scheduler{% endblock %}
+{% block content %}
+<section class="card narrow auth-card">
+  <h1>{{ t('auth.setup', lang) }}</h1>
+  <p>{{ t('auth.setup_description', lang) }}</p>
+  {% if error %}<div class="alert error" role="alert">{{ error }}</div>{% endif %}
+  <form method="post" action="/setup" class="form">
+    <label>{{ t('common.name', lang) }}<input name="name" maxlength="100" autocomplete="name" required autofocus></label>
+    <label>{{ t('users.login_id', lang) }}<input name="login_id" minlength="3" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._@+\-]{2,63}" autocomplete="username" required><small>{{ t('users.login_id_help', lang) }}</small></label>
+    <label>{{ t('users.password', lang) }}<input name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required><small>{{ t('users.password_help', lang) }}</small></label>
+    <label>{{ t('users.password_confirm', lang) }}<input name="password_confirm" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label>
+    <button type="submit">{{ t('auth.setup_submit', lang) }}</button>
+  </form>
+</section>
+{% endblock %}
