@@ -125,6 +125,12 @@ class SeedSafetyTests(unittest.TestCase):
 
 
 class PostgreSQLCompatibilityTests(unittest.TestCase):
+    def test_begin_immediate_uses_postgresql_transaction_syntax(self):
+        sql, returns_id = _postgresql_sql("BEGIN IMMEDIATE")
+
+        self.assertEqual(sql, "BEGIN ISOLATION LEVEL SERIALIZABLE")
+        self.assertFalse(returns_id)
+
     def test_qmark_parameters_and_insert_id_are_translated(self):
         sql, returns_id = _postgresql_sql(
             "INSERT INTO users(name, role) VALUES(?, ?)"

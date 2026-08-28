@@ -186,6 +186,11 @@ def _postgresql_sql(sql: str, *, return_insert_id: bool = True) -> tuple[str, bo
     """Translate the small SQLite SQL subset used by the application."""
     translated = sql.replace("?", "%s")
     normalized = translated.lstrip().upper()
+    if normalized.rstrip("; ") == "BEGIN IMMEDIATE":
+        # SQLite uses BEGIN IMMEDIATE to serialize the one-time owner setup.
+        # PostgreSQL does not support the IMMEDIATE modifier. SERIALIZABLE
+        # preserves the one-time setup invariant if two requests race.
+        return "BEGIN ISOLATION LEVEL SERIALIZABLE", False
     ignore_conflict = normalized.startswith("INSERT OR IGNORE INTO")
     if ignore_conflict:
         translated = translated.replace("INSERT OR IGNORE INTO", "INSERT INTO", 1)
